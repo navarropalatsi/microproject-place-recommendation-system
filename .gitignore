@@ -1,0 +1,13 @@
+**/.vscode/
+**/.idea/
+
+**/.venv/
+**__pycache__/
+**__temp__/
+**.trash_bin/
+
+**.gitignore
+**.git.sh
+**/.git/
+
+.env
