@@ -22,13 +22,21 @@ def create_place(data: SinglePlace, dao: PlaceDAO = Depends(get_place_dao)) -> S
     return dao.create(place_id=data.place_id, name=data.name, full_address=data.fullAddress)
 
 @router.post("/{place_id}/has/{feature}", description="Attach a feature to place", response_model=bool)
-def create_user_feature(place_id: str, feature: str, dao: PlaceDAO = Depends(get_place_dao)) -> bool:
+def create_place_feature(place_id: str, feature: str, dao: PlaceDAO = Depends(get_place_dao)) -> bool:
     return dao.add_feature(place_id=place_id, feature=feature)
+
+@router.post("/{place_id}/is-in/{category}", description="Attach a category to place", response_model=bool)
+def create_place_category(place_id: str, category: str, dao: PlaceDAO = Depends(get_place_dao)) -> bool:
+    return dao.add_category(place_id=place_id, category=category)
 
 @router.delete("/{place_id}", description="Delete a place", response_model=bool)
 def delete_place(place_id: str, dao: PlaceDAO = Depends(get_place_dao)) -> bool:
     return dao.delete(place_id=place_id)
 
 @router.delete("/{place_id}/has-not/{feature}", description="Detach a feature from place", response_model=bool)
-def remove_user_feature(place_id: str, feature: str, dao: PlaceDAO = Depends(get_place_dao)) -> bool:
+def delete_place_feature(place_id: str, feature: str, dao: PlaceDAO = Depends(get_place_dao)) -> bool:
     return dao.remove_feature(place_id=place_id, feature=feature)
+
+@router.delete("/{place_id}/is-not-in/{category}", description="Detach a category from place", response_model=bool)
+def delete_place_category(place_id: str, category: str, dao: PlaceDAO = Depends(get_place_dao)) -> bool:
+    return dao.remove_category(place_id=place_id, category=category)

@@ -88,7 +88,7 @@ class PlaceDAO(object):
                 WITH p, collect(f.name) AS FeaturesList
                 RETURN p { .*, features: FeaturesList } AS place
             """, placeId=place_id, feature=feature).single()
-            return result.get('user')
+            return result.get('place')
 
         self.find(place_id)
         with self.driver.session() as session:
@@ -106,4 +106,32 @@ class PlaceDAO(object):
         self.find(place_id)
         with self.driver.session() as session:
             return session.execute_write(remove_place_feature, place_id=place_id, feature=feature) is not None
+
+    def add_category(self, place_id: str, category: str):
+        def add_place_category(tx: ManagedTransaction, place_id: str, category: str):
+            result = tx.run("""
+                MERGE (p:Place {placeId: $placeId})
+                MERGE (c:Category {name: $category})
+                MERGE (p)-[:IN_CATEGORY]->(c)
+                WITH p, collect(c.name) AS CategoriesList
+                RETURN p { .*, features: CategoriesList } AS place
+            """, placeId=place_id, category=category).single()
+            return result.get('place')
+
+        self.find(place_id)
+        with self.driver.session() as session:
+            return session.execute_write(add_place_category, place_id=place_id, category=category)
+
+    def remove_category(self, place_id: str, category: str):
+        def remove_place_category(tx: ManagedTransaction, place_id: str, category: str):
+            result = tx.run("""
+                MATCH (p:Place {placeId: $place_id})-[r:HAS_FEATURE]->(c:Category {name: $category})
+                DELETE r
+                RETURN r AS relationship
+            """, placeId=place_id, category=category).single()
+            return result.get('relationship')
+
+        self.find(place_id)
+        with self.driver.session() as session:
+            return session.execute_write(remove_place_category, place_id=place_id, category=category) is not None
 
