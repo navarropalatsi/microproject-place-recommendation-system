@@ -17,9 +17,13 @@ def get_all_places(dao: PlaceDAO = Depends(get_place_dao), skip: int = 0, limit:
 def find_place_by_place_id(place_id: str, dao: PlaceDAO = Depends(get_place_dao)) -> SinglePlace:
     return dao.find(place_id=place_id)
 
-@router.post("", description="Create a new place", response_model=SinglePlace)
+@router.post("", description="Create a new place", response_model=SinglePlace, status_code=201)
 def create_place(data: SinglePlace, dao: PlaceDAO = Depends(get_place_dao)) -> SinglePlace:
-    return dao.create(place_id=data.place_id, name=data.name, full_address=data.fullAddress)
+    return dao.create_or_update(place_id=data.placeId, name=data.name, full_address=data.fullAddress)
+
+@router.put("/{place_id}", description="Update a place", response_model=SinglePlace, status_code=200)
+def update_place(place_id: str, data: SinglePlace, dao: PlaceDAO = Depends(get_place_dao)) -> SinglePlace:
+    return dao.create_or_update(place_id=place_id, name=data.name, full_address=data.fullAddress, create=False)
 
 @router.post("/{place_id}/has/{feature}", description="Attach a feature to place", response_model=bool)
 def create_place_feature(place_id: str, feature: str, dao: PlaceDAO = Depends(get_place_dao)) -> bool:

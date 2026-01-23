@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from app.dto.category import SingleCategory
 from app.dto.feature import SingleFeature
 
@@ -8,8 +8,8 @@ class SinglePlace(BaseModel):
     name: str
     fullAddress: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class SinglePlaceExtended(SinglePlace):
     features: list[SingleFeature]

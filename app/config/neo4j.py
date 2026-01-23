@@ -11,9 +11,8 @@ def setup_db() -> Driver:
     driver.verify_connectivity()
     return driver
 
-def validate_field(field: str):
-    fields = ['userId', 'born', 'placeId', 'name', 'gender', 'createdAt', 'fullAddress']
-    return field in fields
+def validate_field(obj: object, field: str):
+    return obj is not None and field is not None and hasattr(obj, field)
 
 def validate_order(order: str):
     return  order is not None and order.upper() in {"ASC", "DESC"}

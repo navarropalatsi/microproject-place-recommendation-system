@@ -2,12 +2,12 @@ from typing import cast, LiteralString
 
 from neo4j import ManagedTransaction, Driver
 from neo4j.exceptions import ConstraintError
-from pyexpat import features
-from werkzeug.exceptions import NotFound
 
-from app.config.exceptions import AlreadyExists
+from app.config.exceptions import AlreadyExists, NotFound
 from app.config.neo4j import validate_order, validate_field, validate_gender
 from app.config.settings import settings
+from app.dto.user import SingleUser
+
 
 class UserDAO(object):
     def __init__(self, driver: Driver):
@@ -18,15 +18,18 @@ class UserDAO(object):
         result = tx.run(cast(LiteralString, """
         MATCH (u:User {userId: $user_id})
         RETURN u AS user
-        """), userId=user_id, database_=settings.NEO4J_DATABASE).single()
+        """), user_id=user_id).single()
 
-        return result.get('user') if result is not None else None
+        if result and result.get('user', False):
+            return result.get('user')
+        else:
+            raise NotFound(f"User with userId {user_id} not found")
 
     def all(self, sort = "userId", order = "DESC", skip = 0, limit = 25):
         def get_users(tx: ManagedTransaction, sort, order, skip, limit):
             if not validate_order(order):
                 order = "DESC"
-            if not validate_field(sort):
+            if not validate_field(SingleUser, sort):
                 sort = "userId"
 
             result = tx.run(cast(LiteralString, f"""
@@ -34,57 +37,55 @@ class UserDAO(object):
             ORDER BY u.{sort} {order}
             RETURN u AS user
             SKIP $skip LIMIT $limit 
-            """), skip=skip, limit=limit, database_=settings.NEO4J_DATABASE)
+            """), skip=skip, limit=limit)
 
             return [row.value('user') for row in result]
 
-        with self.driver.session() as session:
+        with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             return session.execute_read(get_users, sort, order, skip, limit)
 
     def find(self, user_id: str):
-        with self.driver.session() as session:
-            result = session.execute_read(self.get_user, user_id)
-            if result is not None:
-                return result
-            else:
-                raise NotFound(f"User with userId {user_id} not found")
+        with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            return session.execute_read(self.get_user, user_id)
 
-    def create_or_update(self, user_id: str, born: str, gender: str):
+    def create_or_update(self, user_id: str, born: str, gender: str, create=True):
         def add_or_update(tx: ManagedTransaction, user_id: str, born: str, gender: str):
             if not validate_gender(gender):
                 gender = "m"
 
             result = tx.run("""
-                MERGE (u:User, {userId: $user_id})
+                MERGE (u:User {userId: $user_id})
                 SET u.born = date($born)
                 SET u.gender = $gender
                 RETURN u AS user
-            """, userId=user_id, born=born, gender=gender).single()
+            """, user_id=user_id, born=born, gender=gender).single()
 
             if result is not None:
                 return result.get('user')
             return None
 
-        try:
-            with self.driver.session() as session:
-                user = session.execute_read(self.get_user, user_id)
-                if user is not None:
+        with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            if create:
+                try:
+                    session.execute_read(self.get_user, user_id)
                     raise AlreadyExists(f"User with userId {user_id} already exists")
+                except NotFound:
+                    return session.execute_write(add_or_update, user_id=user_id, born=born, gender=gender)
+            else:
+                session.execute_read(self.get_user, user_id)
                 return session.execute_write(add_or_update, user_id=user_id, born=born, gender=gender)
-        except ConstraintError as e:
-            print("ConstraintError detected: " + e.title)
-            return None
 
     def delete(self, user_id: str):
         def remove(tx: ManagedTransaction, user_id: str):
             result = tx.run("""
-                MATCH (u:User, {userId: $user_id})
+                MATCH (u:User {userId: $user_id})
                 DELETE u
                 RETURN u AS user
-            """, userId=user_id).single()
+            """, user_id=user_id).single()
             return result is not None
 
-        with self.driver.session() as session:
+        with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            session.execute_read(self.get_user, user_id=user_id)
             return session.execute_write(remove, user_id=user_id)
 
     def add_feature(self, user_id: str, feature: str):
@@ -95,11 +96,11 @@ class UserDAO(object):
                 MERGE (u)-[:NEEDS_FEATURE]->(f)
                 WITH u, collect(f.name) AS FeaturesList
                 RETURN u { .*, features: FeaturesList } AS user
-            """, userId=user_id, feature=feature).single()
+            """, user_id=user_id, feature=feature).single()
             return result.get('user')
 
-        self.find(user_id)
-        with self.driver.session() as session:
+        with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            session.execute_read(self.get_user, user_id=user_id)
             return session.execute_write(add_needs, user_id=user_id, feature=feature)
 
     def remove_feature(self, user_id: str, feature: str):
@@ -108,10 +109,11 @@ class UserDAO(object):
                 MATCH (u:User {userId: $user_id})-[r:NEEDS_FEATURE]->(f:Feature {name: $feature})
                 DELETE r
                 RETURN r AS relationship
-            """, userId=user_id, feature=feature).single()
+            """, user_id=user_id, feature=feature).single()
             return result.get('relationship')
 
         self.find(user_id)
-        with self.driver.session() as session:
+        with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            session.execute_read(self.get_user, user_id=user_id)
             return session.execute_write(add_needs, user_id=user_id, feature=feature) is not None
 
