@@ -79,7 +79,7 @@ class UserDAO(object):
         def remove(tx: ManagedTransaction, user_id: str):
             result = tx.run("""
                 MATCH (u:User {userId: $user_id})
-                DELETE u
+                DETACH DELETE u
                 RETURN u AS user
             """, user_id=user_id).single()
             return result is not None
@@ -91,10 +91,12 @@ class UserDAO(object):
     def add_feature(self, user_id: str, feature: str):
         def add_needs(tx: ManagedTransaction, user_id: str, feature: str):
             result = tx.run("""
-                MERGE (u:User {userId: $user_id})
-                MERGE (f:Feature {name: $feature})
+                MATCH (u:User {userId: $user_id})
+                MATCH (f:Feature {name: $feature})
                 MERGE (u)-[:NEEDS_FEATURE]->(f)
-                WITH u, collect(f.name) AS FeaturesList
+                WITH u
+                MATCH (u)-[:NEEDS_FEATURE]->(f: Feature)
+                WITH u, collect(f) AS FeaturesList
                 RETURN u { .*, features: FeaturesList } AS user
             """, user_id=user_id, feature=feature).single()
             return result.get('user')
@@ -108,12 +110,14 @@ class UserDAO(object):
             result = tx.run("""
                 MATCH (u:User {userId: $user_id})-[r:NEEDS_FEATURE]->(f:Feature {name: $feature})
                 DELETE r
-                RETURN r AS relationship
+                WITH u
+                MATCH (u)-[:NEEDS_FEATURE]->(f: Feature)
+                WITH u, collect(f) AS FeaturesList
+                RETURN u { .*, features: FeaturesList } AS user
             """, user_id=user_id, feature=feature).single()
-            return result.get('relationship')
+            return result.get('user')
 
-        self.find(user_id)
         with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             session.execute_read(self.get_user, user_id=user_id)
-            return session.execute_write(add_needs, user_id=user_id, feature=feature) is not None
+            return session.execute_write(add_needs, user_id=user_id, feature=feature)
 

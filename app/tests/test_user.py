@@ -1,6 +1,9 @@
 import pytz
+
+from app.dto.user import SingleUserExtended
 from app.tests import client, faker
-from app.tests.fakers import get_user_faker
+from app.tests.fakers import get_user_faker, get_feature_faker
+
 
 def test_create_user():
     user = get_user_faker()
@@ -83,3 +86,48 @@ def test_cannot_delete_non_existing_user():
 
     response = client.delete("/users/" + user['userId'])
     assert response.status_code == 404
+
+def test_can_attach_a_feature_to_an_existing_user():
+    response = client.get("/users?limit=1")
+    assert response.status_code == 200
+    user = response.json()[0]
+
+    feature = get_feature_faker()
+    response = client.post("/features", json={
+        "name": feature.name,
+    })
+    assert response.status_code == 200
+    feature = response.json()
+
+    response = client.post("/users/" + user["userId"] + "/needs/" + feature["name"])
+    assert response.status_code == 201
+
+    user: SingleUserExtended = response.json()
+    for f in user["features"]:
+        if feature['name'] == f['name']:
+            assert feature['name'] == f['name']
+            return
+    assert False
+
+def test_can_detach_a_feature_to_an_existing_user():
+    response = client.get("/users?limit=1")
+    assert response.status_code == 200
+    user = response.json()[0]
+
+    feature = get_feature_faker()
+    response = client.post("/features", json={
+        "name": feature.name,
+    })
+    assert response.status_code == 200
+    feature = response.json()
+
+    response = client.post("/users/" + user["userId"] + "/needs/" + feature["name"])
+    assert response.status_code == 201
+
+    response = client.delete("/users/" + user["userId"] + "/does-not-need/" + feature["name"])
+    assert response.status_code == 200
+    user: SingleUserExtended = response.json()
+    for f in user["features"]:
+        if feature['name'] == f['name']:
+            assert False
+    assert True

@@ -10,7 +10,6 @@ class SinglePlace(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
 class SinglePlaceExtended(SinglePlace):
-    features: list[SingleFeature]
-    categories: list[SingleCategory]
+    features: list[SingleFeature] = []
+    categories: list[SingleCategory] = []

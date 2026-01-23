@@ -17,7 +17,7 @@ class FeatureDAO(object):
         result = tx.run(cast(LiteralString, """
         MATCH (f:Feature {name: $name})
         RETURN f AS feature
-        """), name=name, ,settings.NEO4J_DATABASE=settings.NEO4J_DATABASE).single()
+        """), name=name).single()
 
         if result and result.get('feature'):
             return result.get('feature')
@@ -36,7 +36,7 @@ class FeatureDAO(object):
             ORDER BY f.{sort} {order}
             RETURN f AS feature
             SKIP $skip LIMIT $limit 
-            """), skip=skip, limit=limit, , settings.NEO4J_DATABASE=settings.NEO4J_DATABASE)
+            """), skip=skip, limit=limit)
 
             return [row.value('feature') for row in result]
 

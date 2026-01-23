@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.config.dependencies import get_user_dao
 from app.dao.user import UserDAO
-from app.dto.user import SingleUser
+from app.dto.user import SingleUser, SingleUserExtended
 
 router = APIRouter(
     prefix="/users",
@@ -21,8 +21,8 @@ def find_user_by_id(user_id: str, dao: UserDAO = Depends(get_user_dao)) -> Singl
 def create_user(data: SingleUser, dao: UserDAO = Depends(get_user_dao)) -> SingleUser:
     return dao.create_or_update(user_id=data.userId, born=data.born, gender=data.gender)
 
-@router.post("/{user_id}/needs/{feature}", description="Attach a feature to user", response_model=bool)
-def create_user_feature(user_id: str, feature: str, dao: UserDAO = Depends(get_user_dao)) -> bool:
+@router.post("/{user_id}/needs/{feature}", description="Attach a feature to user", status_code=201, response_model=SingleUserExtended)
+def create_user_feature(user_id: str, feature: str, dao: UserDAO = Depends(get_user_dao)) -> SingleUserExtended:
     return dao.add_feature(user_id=user_id, feature=feature)
 
 @router.put("/{user_id}", description="Update a user", response_model=SingleUser)
@@ -33,6 +33,6 @@ def update_user(data: SingleUser, dao: UserDAO = Depends(get_user_dao)) -> Singl
 def delete_user(user_id: str, dao: UserDAO = Depends(get_user_dao)) -> bool:
     return dao.delete(user_id=user_id)
 
-@router.delete("/{user_id}/does-not-need/{feature}", description="Detach a feature from user", response_model=bool)
-def remove_user_feature(user_id: str, feature: str, dao: UserDAO = Depends(get_user_dao)) -> bool:
+@router.delete("/{user_id}/does-not-need/{feature}", description="Detach a feature from user", response_model=SingleUserExtended)
+def remove_user_feature(user_id: str, feature: str, dao: UserDAO = Depends(get_user_dao)) -> SingleUserExtended:
     return dao.remove_feature(user_id=user_id, feature=feature)

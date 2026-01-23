@@ -24,6 +24,20 @@ class PlaceDAO(object):
         else:
             raise NotFound(f"Place with placeId {place_id} not found")
 
+    @staticmethod
+    def get_place_extended(tx: ManagedTransaction, place_id: str):
+        result = tx.run("""
+            MATCH (p:Place {placeId: $placeId})
+            OPTIONAL MATCH (p)-[:HAS_FEATURE]->(f:Feature)
+            OPTIONAL MATCH (p)-[:IN_CATEGORY]->(c:Category)
+            WITH p, collect(c) AS Cats, collect(f) AS Feats
+            RETURN p { .*, features: Feats, categories: Cats } AS place
+        """, placeId=place_id).single()
+        if result and result.get('place'):
+            return result.get('place')
+        else:
+            raise NotFound(f"[EXT] Place with placeId {place_id} not found")
+
     def all(self, sort = "placeId", order = "DESC", skip = 0, limit = 25):
         def get_places(tx: ManagedTransaction, sort, order, skip, limit):
             if not validate_order(order):
@@ -87,56 +101,58 @@ class PlaceDAO(object):
     def add_feature(self, place_id: str, feature: str):
         def add_place_feature(tx: ManagedTransaction, place_id: str, feature: str):
             result = tx.run("""
-                MERGE (p:Place {placeId: $placeId})
-                MERGE (f:Feature {name: $feature})
+                MATCH (p:Place {placeId: $placeId})
+                MATCH (f:Feature {name: $feature})
                 MERGE (p)-[:HAS_FEATURE]->(f)
-                WITH p, collect(f.name) AS FeaturesList
-                RETURN p { .*, features: FeaturesList } AS place
+                RETURN p AS place
             """, placeId=place_id, feature=feature).single()
             return result.get('place')
 
         with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             session.execute_read(self.get_place, place_id=place_id)
-            return session.execute_write(add_place_feature, place_id=place_id, feature=feature)
+            session.execute_write(add_place_feature, place_id=place_id, feature=feature)
+            return session.execute_read(self.get_place_extended, place_id=place_id)
 
     def remove_feature(self, place_id: str, feature: str):
         def remove_place_feature(tx: ManagedTransaction, place_id: str, feature: str):
             result = tx.run("""
-                MATCH (p:Place {placeId: $place_id})-[r:HAS_FEATURE]->(f:Feature {name: $feature})
+                MATCH (p:Place {placeId: $placeId})-[r:HAS_FEATURE]->(f:Feature {name: $feature})
                 DELETE r
                 RETURN r AS relationship
             """, placeId=place_id, feature=feature).single()
-            return result.get('relationship')
+            return result is None
 
         with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             session.execute_read(self.get_place, place_id=place_id)
-            return session.execute_write(remove_place_feature, place_id=place_id, feature=feature) is not None
+            session.execute_write(remove_place_feature, place_id=place_id, feature=feature)
+            return session.execute_read(self.get_place_extended, place_id=place_id)
 
     def add_category(self, place_id: str, category: str):
         def add_place_category(tx: ManagedTransaction, place_id: str, category: str):
             result = tx.run("""
-                MERGE (p:Place {placeId: $placeId})
-                MERGE (c:Category {name: $category})
+                MATCH (p:Place {placeId: $placeId})
+                MATCH (c:Category {name: $category})
                 MERGE (p)-[:IN_CATEGORY]->(c)
-                WITH p, collect(c.name) AS CategoriesList
-                RETURN p { .*, features: CategoriesList } AS place
+                RETURN p AS place
             """, placeId=place_id, category=category).single()
             return result.get('place')
 
         with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             session.execute_read(self.get_place, place_id=place_id)
-            return session.execute_write(add_place_category, place_id=place_id, category=category)
+            session.execute_write(add_place_category, place_id=place_id, category=category)
+            return session.execute_read(self.get_place_extended, place_id=place_id)
 
     def remove_category(self, place_id: str, category: str):
         def remove_place_category(tx: ManagedTransaction, place_id: str, category: str):
             result = tx.run("""
-                MATCH (p:Place {placeId: $place_id})-[r:HAS_FEATURE]->(c:Category {name: $category})
+                MATCH (p:Place {placeId: $placeId})-[r:IN_CATEGORY]->(c:Category {name: $category})
                 DELETE r
                 RETURN r AS relationship
             """, placeId=place_id, category=category).single()
-            return result.get('relationship')
+            return result is None
 
         with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             session.execute_read(self.get_place, place_id=place_id)
-            return session.execute_write(remove_place_category, place_id=place_id, category=category) is not None
+            session.execute_write(remove_place_category, place_id=place_id, category=category)
+            return session.execute_read(self.get_place_extended, place_id=place_id)
 

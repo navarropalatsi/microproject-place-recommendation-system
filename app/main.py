@@ -25,6 +25,7 @@ app.state.driver = setup_db()
 
 @app.exception_handler(HTTPException)
 async def exception_handler(request: Request, exc: HTTPException):
+    # print(exc.detail)
     return JSONResponse(
         status_code = exc.status_code,
         content = exc.detail
