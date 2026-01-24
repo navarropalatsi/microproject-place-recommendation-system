@@ -19,7 +19,7 @@ def find_user_by_id(user_id: str, dao: UserDAO = Depends(get_user_dao)) -> Singl
 
 @router.post("", description="Create a new user", response_model=SingleUser, status_code=201)
 def create_user(data: SingleUser, dao: UserDAO = Depends(get_user_dao)) -> SingleUser:
-    return dao.create_or_update(user_id=data.userId, born=data.born, gender=data.gender)
+    return dao.create(user_id=data.userId, born=data.born, gender=data.gender)
 
 @router.post("/{user_id}/needs/{feature}", description="Attach a feature to user", status_code=201, response_model=SingleUserExtended)
 def create_user_feature(user_id: str, feature: str, dao: UserDAO = Depends(get_user_dao)) -> SingleUserExtended:
@@ -27,7 +27,7 @@ def create_user_feature(user_id: str, feature: str, dao: UserDAO = Depends(get_u
 
 @router.put("/{user_id}", description="Update a user", response_model=SingleUser)
 def update_user(data: SingleUser, dao: UserDAO = Depends(get_user_dao)) -> SingleUser:
-    return dao.create_or_update(user_id=data.userId, born=data.born, gender=data.gender, create=False)
+    return dao.update(user_id=data.userId, born=data.born, gender=data.gender)
 
 @router.delete("/{user_id}", description="Delete a user", response_model=bool)
 def delete_user(user_id: str, dao: UserDAO = Depends(get_user_dao)) -> bool:

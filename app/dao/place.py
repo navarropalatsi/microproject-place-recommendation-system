@@ -61,10 +61,10 @@ class PlaceDAO(object):
         with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             return session.execute_read(self.get_place, place_id)
 
-    def create_or_update(self, place_id: str, name: str, full_address: str, create=True):
+    def create(self, place_id: str, name: str, full_address: str):
         def add(tx: ManagedTransaction, place_id: str, name: str, full_address: str):
             result = tx.run("""
-                MERGE (p:Place {placeId: $place_id})
+                CREATE (p:Place {placeId: $place_id})
                 SET p.name = $name
                 SET p.fullAddress = $full_address
                 RETURN p AS place
@@ -75,15 +75,27 @@ class PlaceDAO(object):
             return None
 
         with self.driver.session(database=settings.NEO4J_DATABASE) as session:
-            if create:
-                try:
-                    session.execute_read(self.get_place, place_id)
-                    raise AlreadyExists(f"Place with id {place_id} already exists")
-                except NotFound:
-                    return session.execute_write(add, place_id=place_id, name=name, full_address=full_address)
-            else:
-                session.execute_read(self.get_place, place_id)
+            try:
                 return session.execute_write(add, place_id=place_id, name=name, full_address=full_address)
+            except ConstraintError:
+                raise AlreadyExists(f"Place with id {place_id} already exists")
+
+    def update(self, place_id: str, name: str, full_address: str):
+        def modify(tx: ManagedTransaction, place_id: str, name: str, full_address: str):
+            result = tx.run("""
+                MATCH (p:Place {placeId: $place_id})
+                SET p.name = $name
+                SET p.fullAddress = $full_address
+                RETURN p AS place
+            """, place_id=place_id, name=name, full_address=full_address).single()
+
+            if result is not None:
+                return result.get('place')
+            return None
+
+        with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            session.execute_read(self.get_place, place_id=place_id)
+            return session.execute_write(modify, place_id=place_id, name=name, full_address=full_address)
 
     def delete(self, place_id: str):
         def remove(tx: ManagedTransaction, place_id: str):

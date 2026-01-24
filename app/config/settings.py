@@ -1,3 +1,5 @@
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -9,6 +11,8 @@ class Settings(BaseSettings):
     NEO4J_PASSWORD: str
     NEO4J_DATABASE: str
 
-    model_config = SettingsConfigDict(env_file='.env')
+    model_config = SettingsConfigDict(
+        env_file=".env" + ("." + os.getenv("ENV_MODE", "")) if os.getenv("ENV_MODE", False) else ""
+    )
 
 settings = Settings()
