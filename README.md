@@ -57,13 +57,14 @@ graph LR
 ### 1. Start the Database
 Run Neo4j using Docker:
 ```bash
-docker run -d \
-    --name neo4j-place-recommendation-system \
-    --restart always \
-    -p 7474:7474 -p 7687:7687 \
-    -e NEO4J_AUTH=neo4j/neo4j \
-    -v /path/to/your/data:/data
-    neo4j:2025.12.1
+docker run -d --name neo4j-place-recommendation-system \ 
+    --restart always \ 
+    -p 7474:7474 \ 
+    -p 7687:7687 \
+    -e NEO4J_ACCEPT_LICENSE_AGREEMENT=yes \ 
+    -e NEO4J_AUTH=neo4j/your-password \ 
+    -v ./data:/data \ 
+    neo4j:enterprise
 ```
 
 ### 2. Install Dependencies

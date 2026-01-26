@@ -3,7 +3,7 @@ import uuid
 import pytz
 
 from app.dto.feature import SingleFeature
-from app.dto.place import SinglePlaceExtended
+from app.dto.place import SinglePlace
 from app.dto.user import SingleUserExtended
 from app.tests import faker
 
@@ -14,13 +14,15 @@ def get_user_faker() -> SingleUserExtended:
         gender=random.choice(["m", "f"]),
     )
 
-def get_place_faker() -> SinglePlaceExtended:
-    return SinglePlaceExtended(
+def get_place_faker() -> SinglePlace:
+    return SinglePlace(
         placeId=str(uuid.uuid4()),
         name=faker.company(),
-        fullAddress=faker.address(),
-        categories=[],
-        features=[]
+        locality=faker.city(),
+        country=faker.country(),
+        postcode=faker.postcode(),
+        region=faker.word(),
+        freeform=faker.address()
     )
 
 def get_feature_faker() -> SingleFeature:

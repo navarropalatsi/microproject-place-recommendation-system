@@ -1,4 +1,6 @@
-import os
+import logging
+from typing import LiteralString, cast
+
 from neo4j import GraphDatabase, Driver
 from pydantic import BaseModel
 
@@ -11,6 +13,16 @@ def setup_db() -> Driver:
         auth=(settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD)
     )
     driver.verify_connectivity()
+
+    with driver.session() as session:
+        with open('neo4j_setup/data_model/data_model_startup.cypher', 'r') as f:
+            data_model_startup = f.read()
+            for query in data_model_startup.split(';'):
+                query = query.strip()
+                if len(query) > 0:
+                    session.run(cast(LiteralString, query))
+            logging.getLogger('uvicorn').info('Neo4J startup script executed successfully')
+
     return driver
 
 def validate_field(obj: type[BaseModel], field: str):

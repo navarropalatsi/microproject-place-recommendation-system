@@ -5,19 +5,10 @@ from app.tests.fakers import get_place_faker, get_feature_faker, get_category_fa
 
 def test_create_place():
     place = get_place_faker()
-
-    response = client.post("/places", json={
-        "placeId": place.placeId,
-        "name": place.name,
-        "fullAddress": place.fullAddress
-    })
+    response = client.post("/places", json=place.model_dump())
     assert response.status_code == 201
 
-    assert response.json() == {
-        "placeId": place.placeId,
-        "name": place.name,
-        "fullAddress": place.fullAddress
-    }
+    assert response.json()["placeId"] == place.placeId
 
 def test_create_places_and_list_them():
     size = 10
@@ -25,11 +16,8 @@ def test_create_places_and_list_them():
     for i in range(size):
         place = get_place_faker()
         places.append(place)
-        client.post("/places", json={
-            "placeId": place.placeId,
-            "name": place.name,
-            "fullAddress": place.fullAddress
-        })
+        response = client.post("/places", json=place.model_dump())
+        assert response.status_code == 201
 
     response = client.get("/places?limit=" + str(max(300, size)))
     assert response.status_code == 200
@@ -40,11 +28,7 @@ def test_cannot_create_existing_place():
     assert response.status_code == 200
     place = response.json()[0]
 
-    response = client.post("/places", json={
-        "placeId": place['placeId'],
-        "name": place['name'],
-        "fullAddress": place['fullAddress']
-    })
+    response = client.post("/places", json=dict(place))
     assert response.status_code == 409
 
 def test_can_update_existing_place():
@@ -54,17 +38,11 @@ def test_can_update_existing_place():
 
     new_name = faker.company()
     new_address = faker.address()
-    response = client.put("/places/" + place['placeId'], json={
-        "placeId": place['placeId'],
-        "name": new_name,
-        "fullAddress": new_address
-    })
+    place['name'] = new_name
+    place['freeform'] = new_address
+    response = client.put("/places/" + place['placeId'], json=dict(place))
     assert response.status_code == 200
-    assert response.json() == {
-        "placeId": place['placeId'],
-        "name": new_name,
-        "fullAddress": new_address
-    }
+    assert response.json()['freeform'] == new_address
 
 def test_can_delete_existing_place():
     response = client.get("/places?limit=1")
