@@ -12,6 +12,7 @@
 
 .env*
 !.env.example
+!.env.test
 data**
 **.geojson
 **.json
