@@ -57,11 +57,11 @@ class CategoryDAO(object):
             return [row.value("category") async for row in result]
 
         async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
-            return session.execute_read(get_categories, sort, order, skip, limit)
+            return await session.execute_read(get_categories, sort, order, skip, limit)
 
     async def find(self, name: str):
         async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
-            return session.execute_read(self.get_category, name)
+            return await session.execute_read(self.get_category, name)
 
     async def create(self, name: str):
         async def add(tx: AsyncManagedTransaction, name: str):
@@ -80,7 +80,7 @@ class CategoryDAO(object):
 
         try:
             async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
-                return session.execute_write(add, name=name)
+                return await session.execute_write(add, name=name)
         except ConstraintError as e:
             print("ConstraintError detected: " + e.title)
             return None
@@ -100,5 +100,5 @@ class CategoryDAO(object):
             return result is not None
 
         async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
-            session.execute_read(self.get_category, name=name)
+            await session.execute_read(self.get_category, name=name)
             return await session.execute_write(remove, name=name)

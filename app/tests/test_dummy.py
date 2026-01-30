@@ -1,5 +1,3 @@
-from app.tests import client
-
-def test_startup():
+def test_startup(client):
     response = client.get("/")
     assert response.status_code == 200
