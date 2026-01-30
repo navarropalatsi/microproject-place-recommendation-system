@@ -9,7 +9,7 @@ from app.config.settings import settings
 
 async def setup_db() -> AsyncDriver:
     driver = AsyncGraphDatabase.driver(
-        settings.NEO4J_HOSTNAME, auth=(settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD)
+        settings.NEO4J_HOSTNAME, auth=tuple(settings.NEO4J_AUTH.split("/", maxsplit=1))
     )
     await driver.verify_connectivity()
 
