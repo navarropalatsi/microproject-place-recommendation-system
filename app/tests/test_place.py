@@ -20,9 +20,10 @@ def test_create_places_and_list_them(client):
         response = client.post("/places", json=place.model_dump())
         assert response.status_code == 201
 
-    response = client.get("/places?limit=" + str(max(300, size)))
+    limit = int(size / 2)
+    response = client.get("/places?limit=" + str(limit))
     assert response.status_code == 200
-    assert len(response.json()) >= size
+    assert len(response.json()) == limit
 
 
 def test_cannot_create_existing_place(client):

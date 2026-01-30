@@ -28,9 +28,10 @@ def test_create_users_and_list_them(client):
             json={"userId": user.userId, "gender": user.gender, "born": user.born},
         )
 
-    response = client.get("/users?limit=" + str(max(300, size)))
+    limit = int(size / 2)
+    response = client.get("/users?limit=" + str(limit))
     assert response.status_code == 200
-    assert len(response.json()) >= size
+    assert len(response.json()) == limit
 
 
 def test_cannot_create_existing_user(client):

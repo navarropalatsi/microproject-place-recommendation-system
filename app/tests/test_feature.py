@@ -26,9 +26,10 @@ def test_can_add_features_and_list_them(client):
             },
         )
 
-    response = client.get("/features?limit=" + str(max(300, size)))
+    limit = int(size / 2)
+    response = client.get("/features?limit=" + str(limit))
     assert response.status_code == 200
-    assert len(response.json()) >= size
+    assert len(response.json()) == limit
 
 
 def test_can_delete_existing_feature(client):
