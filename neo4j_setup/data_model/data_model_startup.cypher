@@ -27,3 +27,10 @@ FOR (p:Place) ON (p.confidence);
 
 CREATE TEXT INDEX Place_name IF NOT EXISTS
 FOR (p:Place) ON p.name;
+
+CREATE POINT INDEX Place_coordinates IF NOT EXISTS
+FOR (p:Place) ON (p.coordinates);
+
+CREATE FULLTEXT INDEX Place_name_fulltext IF NOT EXISTS
+FOR (p:Place) ON EACH [p.name]
+OPTIONS {indexConfig: {`fulltext.analyzer`: 'standard-no-stop-words'}};

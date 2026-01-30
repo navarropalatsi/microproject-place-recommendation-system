@@ -166,3 +166,57 @@ class PlaceDAO(object):
             session.execute_write(remove_place_category, placeId=placeId, category=category)
             return session.execute_read(self.get_place_extended, placeId=placeId)
 
+    def recommend_places_near_by_affinity(self, user_id: str, base_category: str, latitude: float, longitude: float, max_distance_meters: int, skip: int = 0, limit: int = 10):
+        def get_places(tx: ManagedTransaction, user_id: str, base_category: str, latitude: float, longitude: float, max_distance_meters: int, skip: int, limit: int):
+            result = tx.run("""
+            // EXPLAIN
+            WITH point({latitude: $latitude, longitude: $longitude}) AS pointRef
+
+            // Obtenim les categories ben valorades per part de l'usuari "0" 
+            MATCH (user:User {userId: $user_id})-[r:RATED]->(:Place)-[:IN_CATEGORY]->(ratedCategory:Category)
+            WITH 
+              pointRef, 
+              ratedCategory,
+              avg(r.rating) AS weight
+
+            WITH 
+              pointRef,
+              collect(ratedCategory) AS likedCategories,
+              apoc.map.fromPairs(collect([ratedCategory.name, weight])) AS weightMap
+
+            // Busquem tots els llocs a menys de 30 km del punt de referència
+            // que estiguin relacionats amb la categoria restaurant
+            MATCH (candidate:Place)
+            WHERE 
+              point.distance(candidate.coordinates, pointRef) < $max_distance_meters
+              AND EXISTS { (candidate)-[:IN_CATEGORY]->(:Category {name: $base_category}) }
+
+            MATCH (candidate)-[:IN_CATEGORY]->(cat:Category)
+            WHERE cat IN likedCategories 
+
+            // Computem els valors a retornar
+            WITH 
+              candidate, 
+              pointRef,
+              sum(weightMap[cat.name]) AS totalAffinityScore,
+              collect({name: cat.name, avgRating: weightMap[cat.name]}) AS matches,
+              point.distance(candidate.coordinates, pointRef) AS distance
+
+            WITH 
+              *,
+              (totalAffinityScore - (distance / 200)) AS finalScore
+
+            // Ordenem per distància més propera 
+            ORDER BY  finalScore DESC
+            // Retornem els candidats
+            RETURN candidate { .*, matches: matches, distance} as place
+            SKIP $skip LIMIT $limit
+            """, user_id=user_id, latitude=latitude, longitude=longitude, base_category=base_category, max_distance_meters=max_distance_meters, skip=skip, limit=limit)
+
+            if result is None:
+                return []
+            else:
+                return [row.value('place') for row in result]
+
+        with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            return session.execute_read(get_places, user_id=user_id, base_category=base_category, latitude=latitude, longitude=longitude, max_distance_meters=max_distance_meters, skip=skip, limit=limit)

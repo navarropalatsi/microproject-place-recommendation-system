@@ -13,6 +13,9 @@ class UserDAO(object):
     def __init__(self, driver: Driver):
         self.driver = driver
 
+    RATED = "RATED"
+    NEEDS_FEATURE = "NEEDS_FEATURE"
+
     @staticmethod
     def get_user(tx: ManagedTransaction, user_id: str):
         result = tx.run(cast(LiteralString, """
@@ -27,11 +30,11 @@ class UserDAO(object):
 
     @staticmethod
     def get_user_extended(tx: ManagedTransaction, user_id: str):
-        result = tx.run(cast(LiteralString, """
-        MATCH (u:User {userId: $user_id})
-        OPTIONAL MATCH (u)-[:NEEDS_FEATURE]->(f:Feature)
+        result = tx.run(cast(LiteralString, f"""
+        MATCH (u:User {{userId: $user_id}})
+        OPTIONAL MATCH (u)-[:{UserDAO.NEEDS_FEATURE}]->(f:Feature)
         WITH u, collect(f) AS Feats
-        RETURN u { .*, features: Feats } AS user
+        RETURN u {{ .*, features: Feats }} AS user
         """), user_id=user_id).single()
 
         if result and result.get('user', False):
@@ -119,12 +122,12 @@ class UserDAO(object):
 
     def add_feature(self, user_id: str, feature: str):
         def add_needs(tx: ManagedTransaction, user_id: str, feature: str):
-            result = tx.run("""
-                MATCH (u:User {userId: $user_id})
-                MATCH (f:Feature {name: $feature})
-                MERGE (u)-[:NEEDS_FEATURE]->(f)
+            result = tx.run(cast(LiteralString, f"""
+                MATCH (u:User {{userId: $user_id}})
+                MATCH (f:Feature {{name: $feature}})
+                MERGE (u)-[:{UserDAO.NEEDS_FEATURE}]->(f)
                 RETURN u AS user
-            """, user_id=user_id, feature=feature).single()
+            """), user_id=user_id, feature=feature).single()
             return result.get('user')
 
         with self.driver.session(database=settings.NEO4J_DATABASE) as session:
@@ -134,17 +137,44 @@ class UserDAO(object):
 
     def remove_feature(self, user_id: str, feature: str):
         def remove_need(tx: ManagedTransaction, user_id: str, feature: str):
-            result = tx.run("""
-                MATCH (u:User {userId: $user_id})-[r:NEEDS_FEATURE]->(f:Feature {name: $feature})
+            result = tx.run(cast(LiteralString, f"""
+                MATCH (u:User {{userId: $user_id}})-[r:{UserDAO.NEEDS_FEATURE}]->(f:Feature {{name: $feature}})
                 DELETE r
                 WITH (u IS NOT NULL AND f IS NOT NULL) AS relationship
                 RETURN relationship
-            """, user_id=user_id, feature=feature).single()
+            """), user_id=user_id, feature=feature).single()
             return result.get('relationship')
 
         with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             if session.execute_write(remove_need, user_id=user_id, feature=feature) is False:
                 raise NotFound(f"User with userId {user_id} or feature '{feature}' does not exist")
             return session.execute_read(self.get_user_extended, user_id=user_id)
+
+    def user_has_rated_place(self, user_id: str, place_id: str) -> bool:
+        def find_rating(tx: ManagedTransaction, user_id: str, place_id: str):
+            result = tx.run(cast(LiteralString, f"""
+            MATCH (u:User {{userId: $user_id}})-[r:{UserDAO.RATED}]->(p:Place {{placeId: $place_id}})
+            WITH (r IS NOT NULL) AS rating_exists
+            RETURN rating_exists
+            """), user_id=user_id, place_id=place_id).single()
+            return result and result.get('rating_exists')
+
+        with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            return session.execute_read(find_rating, user_id=user_id, place_id=place_id)
+
+    def rate_place(self, user_id: str, place_id: str, rating: float) -> bool:
+        def add_rating(tx: ManagedTransaction, user_id: str, place_id: str, rating: float):
+            result = tx.run(cast(LiteralString,f"""
+            MATCH (u:User {{userId: $user_id}})
+            MATCH (p:Place {{placeId: $place_id}})
+            MERGE (u)-[r:{UserDAO.RATED}]->(p)
+            SET r.rating = $rating
+            RETURN (r IS NOT NULL) AS rating_exists
+            """), user_id=user_id, place_id=place_id, rating=rating).single()
+            return result and result.get('rating_exists')
+
+        with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            session.execute_write(add_rating, user_id=user_id, place_id=place_id, rating=rating)
+            return True
 
 

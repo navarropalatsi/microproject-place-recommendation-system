@@ -12,5 +12,6 @@
 
 .env
 .env.test
-data/**
+data**
 **.geojson
+**.json

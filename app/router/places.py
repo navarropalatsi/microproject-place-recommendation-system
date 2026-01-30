@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.config.dependencies import get_place_dao
 from app.dao.place import PlaceDAO
-from app.dto.place import SinglePlace, SinglePlaceExtended
+from app.dto.place import SinglePlace, SinglePlaceExtended, SinglePlaceRecommended
 
 router = APIRouter(
     prefix="/places",
@@ -44,3 +44,8 @@ def delete_place_feature(placeId: str, feature: str, dao: PlaceDAO = Depends(get
 @router.delete("/{placeId}/is-not-in/{category}", description="Detach a category from place", response_model=SinglePlaceExtended)
 def delete_place_category(placeId: str, category: str, dao: PlaceDAO = Depends(get_place_dao)) -> SinglePlaceExtended:
     return dao.remove_category(placeId=placeId, category=category)
+
+@router.get("/recommend/{base_category}/for/{user_id}/near/{latitude}/{longitude}/with-max-distance/{max_distance_meters}",
+            description="Recommend places belonged to base category, based on user affinity, position and max distance", response_model=list[SinglePlaceRecommended])
+def find_place_by_place_id(user_id: str, base_category:str, latitude: float, longitude: float, max_distance_meters: int, skip: int = 0, limit: int = 10, dao: PlaceDAO = Depends(get_place_dao)) -> list[SinglePlaceRecommended]:
+    return dao.recommend_places_near_by_affinity(user_id=user_id, base_category=base_category, latitude=latitude, longitude=longitude, max_distance_meters=max_distance_meters, skip=skip, limit=limit)

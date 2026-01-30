@@ -63,6 +63,7 @@ docker run -d --name neo4j-place-recommendation-system \
     -p 7687:7687 \
     -e NEO4J_ACCEPT_LICENSE_AGREEMENT=yes \ 
     -e NEO4J_AUTH=neo4j/your-password \ 
+    -e NEO4J_PLUGINS=[\"apoc\"] \ 
     -v ./data:/data \ 
     neo4j:enterprise
 ```
@@ -82,6 +83,7 @@ cp .env.example .env
 ```bash
 uvicorn app.main:app --reload
 ```
+***NOTE**: On each startup, a script located under /neo4j_setup/data_model/data_model_startup.cypher will be executed*
 
 The API will be available at: `http://localhost:8000`
 

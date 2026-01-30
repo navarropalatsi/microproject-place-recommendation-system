@@ -3,20 +3,21 @@ from typing import cast, LiteralString
 import ijson
 import os
 import sys
+from neo4j.spatial import Point, WGS84Point
 
-from app.config.neo4j import setup_db
-from app.dto.category import SingleCategory
-
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../app'))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from app.config.neo4j import setup_db
+from app.dto.category import SingleCategory
 from app.dto.place import SinglePlace
 
 BULK_IMPORT_QUERY = """
 UNWIND $batch AS row
 MERGE (p:Place {placeId: row[0].placeId})
 SET p += row[0]
+SET p.coordinates = point({latitude: row[0].latitude, longitude: row[0].longitude})
 FOREACH (cat IN row[1] |
     MERGE (c:Category {name: cat.name})
     MERGE (p)-[:IN_CATEGORY]->(c)
@@ -25,7 +26,7 @@ FOREACH (cat IN row[1] |
 
 def import_data():
     driver = setup_db()
-    file_path = "spain_portugal.geojson"
+    file_path = "neo4j_setup/importers/spain_portugal.geojson"
 
     i = 0
     limit = 10000
@@ -41,6 +42,8 @@ def import_data():
             postcode = str(item['properties']['addresses'][0]['postcode']) if item['properties']['addresses'][0]['postcode'] else None,
             region = str(item['properties']['addresses'][0]['region']).upper() if item['properties']['addresses'][0]['region'] else None,
             confidence = float(round(item['properties']['confidence'], 4)),
+            latitude=item['geometry']['coordinates'][1],
+            longitude=item['geometry']['coordinates'][0],
         ).model_dump()
 
         categories = list()

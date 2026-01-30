@@ -25,6 +25,10 @@ def create_user(data: SingleUser, dao: UserDAO = Depends(get_user_dao)) -> Singl
 def create_user_feature(user_id: str, feature: str, dao: UserDAO = Depends(get_user_dao)) -> SingleUserExtended:
     return dao.add_feature(user_id=user_id, feature=feature)
 
+@router.post("/{user_id}/rates/{place_id}/with/{rating}", description="Attach a feature to user", status_code=201)
+def create_user_rating(user_id: str, place_id: str, rating:float, dao: UserDAO = Depends(get_user_dao)) -> bool:
+    return dao.rate_place(user_id=user_id, place_id=place_id, rating=rating)
+
 @router.put("/{user_id}", description="Update a user", response_model=SingleUser)
 def update_user(data: SingleUser, dao: UserDAO = Depends(get_user_dao)) -> SingleUser:
     return dao.update(user_id=data.userId, born=data.born, gender=data.gender)
