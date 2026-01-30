@@ -10,8 +10,8 @@
 **.git.sh
 **/.git/
 
-.env
-.env.test
+.env*
+!.env.example
 data**
 **.geojson
 **.json
