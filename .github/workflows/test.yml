@@ -40,4 +40,4 @@ jobs:
         env:
           ENV_MODE: test
         run: |
-          pytest app\tests -rA
+          pytest app/tests -rA
