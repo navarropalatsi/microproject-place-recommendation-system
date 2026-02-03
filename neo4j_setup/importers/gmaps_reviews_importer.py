@@ -46,8 +46,8 @@ def get_country(location):
             return ""
 
 
-def import_data():
-    driver = setup_db()
+async def import_data():
+    driver = await setup_db()
     file_path = "neo4j_setup/importers/Reseñas.json"
 
     i = 0
@@ -76,13 +76,14 @@ def import_data():
 
         i = i + 1
         if i >= limit:
-            with driver.session() as session:
+            async with driver.session() as session:
                 now = datetime.datetime.now()
                 print(f"Executing import query at {i} review...")
 
                 result = await session.run(
                     cast(LiteralString, BULK_IMPORT_QUERY), batch=buffer
-                ).single()
+                )
+                result = await result.single()
                 if result and result.get("place"):
                     created = created + 1
 
@@ -91,11 +92,12 @@ def import_data():
                 print(f"Last batch has taken {diff.total_seconds()} seconds")
 
     if len(buffer) > 0:
-        with driver.session() as session:
+        async with driver.session() as session:
             print(f"Executing import query at {i} review...")
             result = await session.run(
                 cast(LiteralString, BULK_IMPORT_QUERY), batch=buffer
-            ).single()
+            )
+            result = await result.single()
             if result and result.get("place"):
                 created = created + 1
 
@@ -103,4 +105,6 @@ def import_data():
 
 
 if __name__ == "__main__":
-    import_data()
+    import asyncio
+
+    loop = asyncio.run(import_data())

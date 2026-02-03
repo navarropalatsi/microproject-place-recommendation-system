@@ -3,7 +3,6 @@ from typing import cast, LiteralString
 import ijson
 import os
 import sys
-from neo4j.spatial import Point, WGS84Point
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if project_root not in sys.path:
@@ -25,8 +24,8 @@ FOREACH (cat IN row[1] |
 """
 
 
-def import_data():
-    driver = setup_db()
+async def import_data():
+    driver = await setup_db()
     file_path = "neo4j_setup/importers/spain_portugal.geojson"
 
     i = 0
@@ -77,7 +76,7 @@ def import_data():
 
         i = i + 1
         if len(buffer) == limit:
-            with driver.session() as session:
+            async with driver.session() as session:
                 now = datetime.datetime.now()
                 print(f"Executing import query at {i} place...")
                 await session.run(cast(LiteralString, BULK_IMPORT_QUERY), batch=buffer)
@@ -86,7 +85,7 @@ def import_data():
                 print(f"Last batch has taken {diff.total_seconds()} seconds")
 
     if len(buffer) > 0:
-        with driver.session() as session:
+        async with driver.session() as session:
             print(f"Executing import query at {i} place...")
             await session.run(cast(LiteralString, BULK_IMPORT_QUERY), batch=buffer)
 
@@ -94,4 +93,6 @@ def import_data():
 
 
 if __name__ == "__main__":
-    import_data()
+    import asyncio
+
+    asyncio.run(import_data())

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     NEO4J_AUTH: str
     NEO4J_DATABASE: str
 
-    model_config = SettingsConfigDict(env_file=env_file)
+    model_config = SettingsConfigDict(env_file=env_file, extra="ignore")
 
 
 settings = Settings()
