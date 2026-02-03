@@ -60,9 +60,7 @@ async def create_user_rating(
     rating: float,
     service: UserService = Depends(get_user_service),
 ) -> bool:
-    return await service.create_user_rating(
-        user_id=user_id, place_id=place_id, rating=rating
-    )
+    return await service.rate_place(user_id=user_id, place_id=place_id, rating=rating)
 
 
 @router.put("/{user_id}", description="Update a user", response_model=SingleUser)

@@ -187,7 +187,7 @@ class UserDAO(object):
     @staticmethod
     async def add_rating(
         tx: AsyncManagedTransaction, user_id: str, place_id: str, rating: float
-    ):
+    ) -> bool:
         query = cast(
             LiteralString,
             f"""

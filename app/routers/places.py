@@ -12,14 +12,14 @@ router = APIRouter(prefix="/places", tags=["places"])
 async def get_all_places(
     service: PlaceService = Depends(get_place_service), skip: int = 0, limit: int = 25
 ) -> list[SinglePlace]:
-    return await service.all(skip=skip, limit=limit, order="ASC")
+    return await service.get_all_places(skip=skip, limit=limit, order="ASC")
 
 
 @router.get("/{placeId}", description="Get a single place", response_model=SinglePlace)
 async def find_place_by_place_id(
     placeId: str, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlace:
-    return await service.find(placeId=placeId)
+    return await service.get_place(placeId=placeId)
 
 
 @router.post(
@@ -28,7 +28,7 @@ async def find_place_by_place_id(
 async def create_place(
     data: SinglePlace, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlace:
-    return await service.create(placeId=data.placeId, data=data.model_dump())
+    return await service.create_place(placeId=data.placeId, data=data.model_dump())
 
 
 @router.put(
@@ -40,7 +40,7 @@ async def create_place(
 async def update_place(
     placeId: str, data: SinglePlace, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlace:
-    return await service.update(placeId=data.placeId, data=data.model_dump())
+    return await service.update_place(placeId=placeId, data=data.model_dump())
 
 
 @router.post(
@@ -52,7 +52,8 @@ async def update_place(
 async def create_place_feature(
     placeId: str, feature: str, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlaceExtended:
-    return await service.add_feature(placeId=placeId, feature=feature)
+    await service.attach_feature_to_place(placeId=placeId, feature=feature)
+    return await service.get_place(placeId=placeId)
 
 
 @router.post(
@@ -64,14 +65,15 @@ async def create_place_feature(
 async def create_place_category(
     placeId: str, category: str, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlaceExtended:
-    return await service.add_category(placeId=placeId, category=category)
+    await service.attach_category_to_place(placeId=placeId, category=category)
+    return await service.get_place(placeId=placeId)
 
 
 @router.delete("/{placeId}", description="Delete a place", response_model=bool)
 async def delete_place(
     placeId: str, service: PlaceService = Depends(get_place_service)
 ) -> bool:
-    return await service.delete(placeId=placeId)
+    return await service.delete_place(placeId=placeId)
 
 
 @router.delete(
@@ -82,7 +84,8 @@ async def delete_place(
 async def delete_place_feature(
     placeId: str, feature: str, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlaceExtended:
-    return await service.remove_feature(placeId=placeId, feature=feature)
+    await service.detach_feature_from_place(placeId=placeId, feature=feature)
+    return await service.get_place(placeId=placeId)
 
 
 @router.delete(
@@ -93,7 +96,8 @@ async def delete_place_feature(
 async def delete_place_category(
     placeId: str, category: str, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlaceExtended:
-    return await service.remove_category(placeId=placeId, category=category)
+    await service.detach_category_from_place(placeId=placeId, category=category)
+    return await service.get_place(placeId=placeId)
 
 
 @router.get(

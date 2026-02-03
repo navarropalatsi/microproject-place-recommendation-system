@@ -1,11 +1,9 @@
-from fastapi import Depends
 from neo4j import AsyncDriver
 
 from app.config.exceptions import InvalidValue
 from app.dao.recommendation_dao import RecommendationDAO
 from app.dto.place import SinglePlaceRecommended
 from app.services.category_service import CategoryService
-from app.services.place_service import PlaceService
 from app.services.user_service import UserService
 
 
@@ -13,8 +11,8 @@ class RecommendationService:
     def __init__(
         self,
         driver: AsyncDriver,
-        category_service: CategoryService = Depends(CategoryService),
-        user_service: UserService = Depends(UserService),
+        category_service: CategoryService,
+        user_service: UserService,
     ):
         self.driver = driver
         self.category_service = category_service

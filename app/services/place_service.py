@@ -1,12 +1,8 @@
 from typing import Any
-
-from fastapi.params import Depends
 from neo4j import AsyncDriver
-
 from app.dao.place_dao import PlaceDAO
 from app.dto.place import SinglePlace, SinglePlaceExtended
 from app.config.exceptions import NotFound, AlreadyExists
-from app.config.dependencies import get_feature_service, get_category_service
 from app.services.category_service import CategoryService
 from app.services.feature_service import FeatureService
 
@@ -15,8 +11,8 @@ class PlaceService:
     def __init__(
         self,
         driver: AsyncDriver,
-        feature_service: FeatureService = Depends(get_feature_service),
-        category_service: CategoryService = Depends(get_category_service),
+        feature_service: FeatureService,
+        category_service: CategoryService,
     ) -> None:
         self.driver = driver
         self.feature_service = feature_service
@@ -31,9 +27,11 @@ class PlaceService:
             )
             return [SinglePlace(**item) for item in items]
 
-    async def get_place(self, placeId: str) -> SinglePlace:
+    async def get_place(self, placeId: str) -> SinglePlaceExtended:
         async with self.driver.session() as session:
-            item = await session.execute_read(PlaceDAO.get_place, placeId=placeId)
+            item = await session.execute_read(
+                PlaceDAO.get_place_extended, placeId=placeId
+            )
             if item:
                 return SinglePlaceExtended(**item)
             else:
@@ -53,9 +51,10 @@ class PlaceService:
     async def update_place(self, placeId: str, data: dict[str, Any]) -> SinglePlace:
         async with self.driver.session() as session:
             item = await session.execute_read(PlaceDAO.get_place, placeId=placeId)
+            data["placeId"] = placeId
             if item:
                 item = await session.execute_write(
-                    PlaceDAO.add, placeId=placeId, data=data
+                    PlaceDAO.modify, placeId=placeId, data=data
                 )
                 return SinglePlace(**item)
             else:
