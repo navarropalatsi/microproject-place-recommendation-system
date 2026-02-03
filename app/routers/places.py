@@ -1,33 +1,34 @@
 from fastapi import APIRouter, Depends
 
-from app.config.dependencies import get_place_dao
-from app.dao.place import PlaceDAO
+from app.config.dependencies import get_place_service, get_recommendation_service
 from app.dto.place import SinglePlace, SinglePlaceExtended, SinglePlaceRecommended
+from app.services.place_service import PlaceService
+from app.services.recommendation_service import RecommendationService
 
 router = APIRouter(prefix="/places", tags=["places"])
 
 
 @router.get("", description="Get all places", response_model=list[SinglePlace])
 async def get_all_places(
-    dao: PlaceDAO = Depends(get_place_dao), skip: int = 0, limit: int = 25
+    service: PlaceService = Depends(get_place_service), skip: int = 0, limit: int = 25
 ) -> list[SinglePlace]:
-    return await dao.all(skip=skip, limit=limit, order="ASC")
+    return await service.all(skip=skip, limit=limit, order="ASC")
 
 
 @router.get("/{placeId}", description="Get a single place", response_model=SinglePlace)
 async def find_place_by_place_id(
-    placeId: str, dao: PlaceDAO = Depends(get_place_dao)
+    placeId: str, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlace:
-    return await dao.find(placeId=placeId)
+    return await service.find(placeId=placeId)
 
 
 @router.post(
     "", description="Create a new place", response_model=SinglePlace, status_code=201
 )
 async def create_place(
-    data: SinglePlace, dao: PlaceDAO = Depends(get_place_dao)
+    data: SinglePlace, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlace:
-    return await dao.create(placeId=data.placeId, data=data.model_dump())
+    return await service.create(placeId=data.placeId, data=data.model_dump())
 
 
 @router.put(
@@ -37,9 +38,9 @@ async def create_place(
     status_code=200,
 )
 async def update_place(
-    placeId: str, data: SinglePlace, dao: PlaceDAO = Depends(get_place_dao)
+    placeId: str, data: SinglePlace, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlace:
-    return await dao.update(placeId=data.placeId, data=data.model_dump())
+    return await service.update(placeId=data.placeId, data=data.model_dump())
 
 
 @router.post(
@@ -49,9 +50,9 @@ async def update_place(
     response_model=SinglePlaceExtended,
 )
 async def create_place_feature(
-    placeId: str, feature: str, dao: PlaceDAO = Depends(get_place_dao)
+    placeId: str, feature: str, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlaceExtended:
-    return await dao.add_feature(placeId=placeId, feature=feature)
+    return await service.add_feature(placeId=placeId, feature=feature)
 
 
 @router.post(
@@ -61,14 +62,16 @@ async def create_place_feature(
     response_model=SinglePlaceExtended,
 )
 async def create_place_category(
-    placeId: str, category: str, dao: PlaceDAO = Depends(get_place_dao)
+    placeId: str, category: str, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlaceExtended:
-    return await dao.add_category(placeId=placeId, category=category)
+    return await service.add_category(placeId=placeId, category=category)
 
 
 @router.delete("/{placeId}", description="Delete a place", response_model=bool)
-async def delete_place(placeId: str, dao: PlaceDAO = Depends(get_place_dao)) -> bool:
-    return await dao.delete(placeId=placeId)
+async def delete_place(
+    placeId: str, service: PlaceService = Depends(get_place_service)
+) -> bool:
+    return await service.delete(placeId=placeId)
 
 
 @router.delete(
@@ -77,9 +80,9 @@ async def delete_place(placeId: str, dao: PlaceDAO = Depends(get_place_dao)) -> 
     response_model=SinglePlaceExtended,
 )
 async def delete_place_feature(
-    placeId: str, feature: str, dao: PlaceDAO = Depends(get_place_dao)
+    placeId: str, feature: str, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlaceExtended:
-    return await dao.remove_feature(placeId=placeId, feature=feature)
+    return await service.remove_feature(placeId=placeId, feature=feature)
 
 
 @router.delete(
@@ -88,9 +91,9 @@ async def delete_place_feature(
     response_model=SinglePlaceExtended,
 )
 async def delete_place_category(
-    placeId: str, category: str, dao: PlaceDAO = Depends(get_place_dao)
+    placeId: str, category: str, service: PlaceService = Depends(get_place_service)
 ) -> SinglePlaceExtended:
-    return await dao.remove_category(placeId=placeId, category=category)
+    return await service.remove_category(placeId=placeId, category=category)
 
 
 @router.get(
@@ -106,9 +109,9 @@ async def find_place_by_place_id(
     max_distance_meters: int,
     skip: int = 0,
     limit: int = 10,
-    dao: PlaceDAO = Depends(get_place_dao),
+    service: RecommendationService = Depends(get_recommendation_service),
 ) -> list[SinglePlaceRecommended]:
-    return await dao.recommend_places_near_by_affinity(
+    return await service.recommend_places_near_by_affinity(
         user_id=user_id,
         base_category=base_category,
         latitude=latitude,

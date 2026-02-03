@@ -6,12 +6,14 @@ class AlreadyExists(HTTPException):
         self.status_code = 409
         self.detail = detail
 
+
 class NotFound(HTTPException):
-    def __init__(self, detail: str="Not Found"):
+    def __init__(self, detail: str = "Not Found"):
         self.status_code = 404
         self.detail = detail
 
+
 class InvalidValue(HTTPException):
-    def __init__(self, detail: str="Invalid value"):
+    def __init__(self, detail: str = "Invalid value"):
         self.status_code = 400
         self.detail = detail

@@ -6,10 +6,10 @@ from starlette.exceptions import HTTPException
 
 from app.config.neo4j import setup_db
 from app.config.settings import settings
-from app.router.users import router as user_router
-from app.router.features import router as feature_router
-from app.router.categories import router as category_router
-from app.router.places import router as places_router
+from app.routers.users import router as user_router
+from app.routers.features import router as feature_router
+from app.routers.categories import router as category_router
+from app.routers.places import router as places_router
 
 
 @asynccontextmanager

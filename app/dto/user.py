@@ -1,3 +1,5 @@
+from typing import Literal
+
 from neo4j.time import Date
 from pydantic import BaseModel, ConfigDict, field_validator
 from app.dto.feature import SingleFeature
@@ -6,7 +8,7 @@ from app.dto.feature import SingleFeature
 class SingleUser(BaseModel):
     userId: str
     born: str | None
-    gender: str | None
+    gender: Literal["m", "f"] | None
 
     @field_validator("born", mode="before")
     @classmethod

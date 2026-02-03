@@ -1,22 +1,32 @@
 from fastapi import Request, Depends
 
-from app.dao.category import CategoryDAO
-from app.dao.feature import FeatureDAO
-from app.dao.place import PlaceDAO
-from app.dao.user import UserDAO
+from app.dao.place_dao import PlaceDAO
+from app.services.category_service import CategoryService
+from app.services.feature_service import FeatureService
+from app.services.place_service import PlaceService
+from app.services.recommendation_service import RecommendationService
+from app.services.user_service import UserService
 
 
 def get_driver(request: Request):
     return request.app.state.driver
 
-def get_user_dao(driver = Depends(get_driver)):
-    return UserDAO(driver)
 
-def get_feature_dao(driver = Depends(get_driver)):
-    return FeatureDAO(driver)
+async def get_user_service(driver=Depends(get_driver)):
+    return UserService(driver)
 
-def get_category_dao(driver = Depends(get_driver)):
-    return CategoryDAO(driver)
 
-def get_place_dao(driver = Depends(get_driver)):
-    return PlaceDAO(driver)
+async def get_feature_service(driver=Depends(get_driver)):
+    return FeatureService(driver)
+
+
+async def get_category_service(driver=Depends(get_driver)):
+    return CategoryService(driver)
+
+
+async def get_place_service(driver=Depends(get_driver)):
+    return PlaceService(driver)
+
+
+async def get_recommendation_service(driver=Depends(get_driver)):
+    return RecommendationService(driver)
