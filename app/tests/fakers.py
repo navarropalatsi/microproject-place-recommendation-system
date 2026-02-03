@@ -31,8 +31,8 @@ def get_place_faker() -> SinglePlace:
 
 
 def get_feature_faker() -> SingleFeature:
-    return SingleFeature(name=faker.word())
+    return SingleFeature(name=str(uuid.uuid4()))
 
 
 def get_category_faker() -> SingleFeature:
-    return SingleFeature(name=faker.word())
+    return SingleFeature(name=str(uuid.uuid4()))
