@@ -1,4 +1,5 @@
 import os
+import uuid
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -11,6 +12,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str
     PROJECT_DESCRIPTION: str
     PROJECT_VERSION: str
+    SERVICE_AK_HEADER: str
+    SERVICE_API_KEY: str
     NEO4J_HOSTNAME: str
     NEO4J_AUTH: str
     NEO4J_DATABASE: str
