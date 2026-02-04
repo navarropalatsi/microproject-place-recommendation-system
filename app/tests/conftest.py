@@ -4,6 +4,7 @@ import pytest
 from _pytest.main import Session
 from fastapi.testclient import TestClient
 from neo4j import AsyncDriver
+from pydantic import ValidationError
 
 from app.config.neo4j import setup_db
 from app.config.settings import settings, Settings, ProductionSettings, LocalSettings
@@ -20,23 +21,29 @@ async def clean_db():
 
 
 def check_if_test_datbase():
-    error_msg = f"\n🚨 SAFETY VIOLATION: Attempting to test against a production-like host: '{settings.NEO4J_HOSTNAME}'. Check your .env.test file.\n\n"
+    error_msg = f"\n🚨 SAFETY VIOLATION: Attempting to test against a non-test-like host: '{settings.NEO4J_HOSTNAME}'. Check your .env.test file.\n\n"
 
-    settings_docker = ProductionSettings()
-    if (
-        settings.NEO4J_HOSTNAME == settings_docker.NEO4J_HOSTNAME
-        and settings.NEO4J_AUTH == settings_docker.NEO4J_AUTH
-        and settings.NEO4J_DATABASE == settings_docker.NEO4J_DATABASE
-    ):
-        raise Exception(error_msg)
+    try:
+        settings_docker = ProductionSettings()
+        if (
+            settings.NEO4J_HOSTNAME == settings_docker.NEO4J_HOSTNAME
+            and settings.NEO4J_AUTH == settings_docker.NEO4J_AUTH
+            and settings.NEO4J_DATABASE == settings_docker.NEO4J_DATABASE
+        ):
+            raise Exception(error_msg)
+    except ValidationError as e:
+        settings_docker = None
 
-    local_settings = LocalSettings()
-    if (
-        settings.NEO4J_HOSTNAME == local_settings.NEO4J_HOSTNAME
-        and settings.NEO4J_AUTH == local_settings.NEO4J_AUTH
-        and settings.NEO4J_DATABASE == local_settings.NEO4J_DATABASE
-    ):
-        raise Exception(error_msg)
+    try:
+        settings_local = LocalSettings()
+        if (
+            settings.NEO4J_HOSTNAME == settings_local.NEO4J_HOSTNAME
+            and settings.NEO4J_AUTH == settings_local.NEO4J_AUTH
+            and settings.NEO4J_DATABASE == settings_local.NEO4J_DATABASE
+        ):
+            raise Exception(error_msg)
+    except ValidationError as e:
+        settings_local = None
 
 
 @pytest.fixture(scope="module")
