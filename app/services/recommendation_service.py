@@ -1,6 +1,7 @@
 from neo4j import AsyncDriver
 
 from app.config.exceptions import InvalidValue
+from app.config.settings import settings
 from app.dao.recommendation_dao import RecommendationDAO
 from app.dto.place import SinglePlaceRecommended
 from app.services.category_service import CategoryService
@@ -40,7 +41,7 @@ class RecommendationService:
             )
 
         # Query execution
-        async with self.driver.session() as session:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             items = await session.execute_read(
                 RecommendationDAO.recommend_places_near_by_affinity,
                 user_id=user_id,

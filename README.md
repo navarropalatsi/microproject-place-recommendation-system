@@ -3,23 +3,31 @@
 ![Python](https://img.shields.io/badge/Python-FFE873?style=for-the-badge&logo=python&logoColor=4B8BBE)
 ![FastAPI](https://img.shields.io/badge/FastAPI-38998b?style=for-the-badge&logo=fastapi&logoColor=white)
 ![Neo4j](https://img.shields.io/badge/Neo4j-014063?style=for-the-badge&logo=neo4j&logoColor=white)
-![Neo4j](https://img.shields.io/badge/Docker-1D63ED?style=for-the-badge&logo=docker&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-1D63ED?style=for-the-badge&logo=docker&logoColor=white)
 
 > A Context-Aware Recommendation Backend powered by **Graph Theory**.
 
 ## 📖 Overview
 
 This project implements a RESTful API designed to power a tourism discovery platform. Unlike traditional SQL-based 
-directories, this system uses a **Knowledge Graph** to model the complex relationships between travelers, locations, 
-and accessibility requirements.
+directories, this system uses a **knowledge graph** to model the complex relationships between travelers, locations, 
+and their requirements or features.
 
 By leveraging **Neo4j**, the API enables semantic queries (e.g., *"Find places visited by people like me who also need 
 wheelchair access"*) that would be computationally expensive in relational databases.
 
-## 🏗️ Architecture & Data Model
+## 🏗️ Architecture
 
-The core of the system is a Graph Schema designed for scalability and high-performance filtering.
+The system is built following a strict **layered architecture** (Router ↔ Service ↔ DAO) to ensure scalability and 
+maintainability.
 
+### Software Pattern
+* **Routers:** Handle HTTP requests and input validation (Pydantic).
+* **Services:** Contain business logic, transactional boundaries, and orchestration.
+* **DAOs (Data Access Objects):** Execute raw Cypher queries and handle DB communication.
+
+### Data Model
+The core is a graph schema designed for high-performance filtering:
 ```mermaid
 graph LR
     User((User))
@@ -42,58 +50,54 @@ graph LR
 
 ## ⚡ Key Features
 
-* **Graph-Native queries:** Efficient traversal of user interactions and place attributes using pure **Cypher**.
-* **Secure implementation:** Prevents **Cypher Injection** via strict allow-listing and parameterization.
-* **Automatic documentation:** Fully interactive OpenAPI interface.
-* **Data integrity:** Enforced by Pydantic models and Neo4j constraints.
-* **Pagination & sorting:** Optimized endpoints handling large datasets.
+* **Graph-native logic:** Recommendations based on traversal patterns, not just attribute matching.
+* **Layered architecture:** Professional separation of concerns ensuring testability and modularity.
+* **Service-to-Service security:** Protected endpoints via API Key Authentication, designed for internal microservice 
+communication.
+* **Transactional integrity:** Service-managed transactions ensuring ACID compliance across multiple graph operations.
+* **Automated testing:** Integrated `pytest` suite with fixture-based database cleanup.
 
 ## 🚀 Getting Started
 
-### Prerequisites
-* Docker & Docker Compose (Recommended for Neo4j)
-* Python 3.10+
+The entire stack (API + Database) is containerized. You can launch it with a single command.
 
-### 1. Start the Database
-Run Neo4j using Docker:
+### 1. Configure Environment
 ```bash
-docker run -d --name neo4j-place-recommendation-system \ 
-    --restart always \ 
-    -p 7474:7474 \ 
-    -p 7687:7687 \
-    -e NEO4J_ACCEPT_LICENSE_AGREEMENT=yes \ 
-    -e NEO4J_AUTH=neo4j/your-password \ 
-    -e NEO4J_PLUGINS=[\"apoc\"] \ 
-    -v ./data:/data \ 
-    neo4j:enterprise
+# Create the docker environment file
+cp .env.example .env.docker
+
+# (Optional) Edit .env.docker to set your own passwords/keys
 ```
 
-### 2. Install Dependencies
+### 2. Launch with Docker Compose
 ```bash
-pip install -r requirements.txt
+docker-compose up --build
+```
+*Wait a few seconds for Neo4j to accept connections.*
+
+* **API Documentation:** [`http://localhost:8000/docs`](http://localhost:8000/docs)
+* **Neo4j Browser:** [`http://localhost:7474`](http://localhost:7474)
+
+## 🧪 Testing
+
+The project uses `pytest` for integration testing. To ensure data integrity and prevent pollution of your development/production database, tests must be executed against a **dedicated Neo4j Test Instance**.
+
+### 1. Configure Test Environment
+Create a `.env.test` file specifically for the test runner. This file should point to an isolated Neo4j instance (e.g., running on a different port or a separate Docker container).
+
+```bash
+cp .env.example .env.test
+# ⚠️ IMPORTANT: Edit .env.test and set NEO4J_HOSTNAME/PORT to your dedicated TEST instance.
+# Do NOT point this to your production data!
 ```
 
-### 3. Setup environment
+### 2. Run Tests (Local)
+Once configured, execute the tests locally. The suite includes fixtures that will **automatically wipe the database** defined in `.env.test` before running to ensure a clean state.
+
 ```bash
-cp .env.example .env
-# fill it with your variables
+pytest app/tests -rA
 ```
-
-### 4. Run the API
-```bash
-uvicorn app.main:app --reload
 ```
-***NOTE**: On each startup, a script located under /neo4j_setup/data_model/data_model_startup.cypher will be executed*
-
-The API will be available at: `http://localhost:8000`
-
-## 📚 API Documentation
-
-Once the server is running, explore the interactive documentation:
-
-* **Swagger UI:** [`http://localhost:8000`](http://localhost:8000/docs)
-* **ReDoc:** [`http://localhost:8000/redoc`](http://localhost:8000/redoc)
-
 ---
 
 _Project developed by **Joan Navarro** as part of a Graph Data Engineering portfolio._

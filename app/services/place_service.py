@@ -1,5 +1,7 @@
 from typing import Any
 from neo4j import AsyncDriver
+
+from app.config.settings import settings
 from app.dao.place_dao import PlaceDAO
 from app.dto.place import SinglePlace, SinglePlaceExtended
 from app.config.exceptions import NotFound, AlreadyExists
@@ -21,14 +23,14 @@ class PlaceService:
     async def get_all_places(
         self, sort="placeId", order="DESC", skip=0, limit=25
     ) -> list[SinglePlace]:
-        async with self.driver.session() as session:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             items = await session.execute_read(
                 PlaceDAO.get_places, sort=sort, order=order, skip=skip, limit=limit
             )
             return [SinglePlace(**item) for item in items]
 
     async def get_place(self, placeId: str) -> SinglePlaceExtended:
-        async with self.driver.session() as session:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             item = await session.execute_read(
                 PlaceDAO.get_place_extended, placeId=placeId
             )
@@ -38,7 +40,7 @@ class PlaceService:
                 raise NotFound(f"Place with id {placeId} was not found.")
 
     async def create_place(self, placeId: str, data: dict[str, Any]) -> SinglePlace:
-        async with self.driver.session() as session:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             item = await session.execute_read(PlaceDAO.get_place, placeId=placeId)
             if item:
                 raise AlreadyExists(f"Place with id {placeId} already exists.")
@@ -49,7 +51,7 @@ class PlaceService:
                 return SinglePlace(**item)
 
     async def update_place(self, placeId: str, data: dict[str, Any]) -> SinglePlace:
-        async with self.driver.session() as session:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             item = await session.execute_read(PlaceDAO.get_place, placeId=placeId)
             data["placeId"] = placeId
             if item:
@@ -61,7 +63,7 @@ class PlaceService:
                 raise NotFound(f"Place with id {placeId} was not found.")
 
     async def delete_place(self, placeId: str) -> bool:
-        async with self.driver.session() as session:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             item = await session.execute_read(PlaceDAO.get_place, placeId=placeId)
             if item:
                 return await session.execute_write(PlaceDAO.remove, placeId=placeId)
@@ -70,7 +72,7 @@ class PlaceService:
 
     async def attach_feature_to_place(self, placeId: str, feature: str) -> bool:
         await self.feature_service.get_single_feature(name=feature)
-        async with self.driver.session() as session:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             item = await session.execute_read(PlaceDAO.get_place, placeId=placeId)
             if item:
                 result = await session.execute_write(
@@ -82,7 +84,7 @@ class PlaceService:
 
     async def detach_feature_from_place(self, placeId: str, feature: str) -> bool:
         await self.feature_service.get_single_feature(name=feature)
-        async with self.driver.session() as session:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             item = await session.execute_read(PlaceDAO.get_place, placeId=placeId)
             if item:
                 result = await session.execute_write(
@@ -94,7 +96,7 @@ class PlaceService:
 
     async def attach_category_to_place(self, placeId: str, category: str) -> bool:
         await self.category_service.get_single_category(name=category)
-        async with self.driver.session() as session:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             item = await session.execute_read(PlaceDAO.get_place, placeId=placeId)
             if item:
                 result = await session.execute_write(
@@ -106,7 +108,7 @@ class PlaceService:
 
     async def detach_category_from_place(self, placeId: str, category: str) -> bool:
         await self.category_service.get_single_category(name=category)
-        async with self.driver.session() as session:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
             item = await session.execute_read(PlaceDAO.get_place, placeId=placeId)
             if item:
                 result = await session.execute_write(

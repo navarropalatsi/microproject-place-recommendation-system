@@ -76,7 +76,7 @@ async def import_data():
 
         i = i + 1
         if len(buffer) == limit:
-            async with driver.session() as session:
+            async with driver.session(database=settings.NEO4J_DATABASE) as session:
                 now = datetime.datetime.now()
                 print(f"Executing import query at {i} place...")
                 await session.run(cast(LiteralString, BULK_IMPORT_QUERY), batch=buffer)
@@ -85,7 +85,7 @@ async def import_data():
                 print(f"Last batch has taken {diff.total_seconds()} seconds")
 
     if len(buffer) > 0:
-        async with driver.session() as session:
+        async with driver.session(database=settings.NEO4J_DATABASE) as session:
             print(f"Executing import query at {i} place...")
             await session.run(cast(LiteralString, BULK_IMPORT_QUERY), batch=buffer)
 
