@@ -18,6 +18,7 @@ class SinglePlace(BaseModel):
     postcode: str | None = None
     freeform: str | None = None
     confidence: float | None = None
+    yelpId: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -55,5 +56,6 @@ class SinglePlaceCategoryMatch(BaseModel):
 
 
 class SinglePlaceRecommended(SinglePlace):
-    matches: list[SinglePlaceCategoryMatch]
+    matches: list[SinglePlaceCategoryMatch] = []
     distance: float
+    score: float

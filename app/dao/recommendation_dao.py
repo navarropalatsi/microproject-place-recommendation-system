@@ -60,7 +60,7 @@ class RecommendationDAO(object):
           (totalAffinityScore - (distance / 200)) AS finalScore
 
         ORDER BY finalScore DESC
-        RETURN candidate { .*, matches: matches, distance} as place
+        RETURN candidate { .*, matches: matches, distance, score: finalScore } as place
         SKIP $skip LIMIT $limit
         """,
         )

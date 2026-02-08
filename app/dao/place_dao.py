@@ -24,14 +24,58 @@ class PlaceDAO(object):
         return result.get("place") if result else None
 
     @staticmethod
+    async def get_place_by_yelp_id(
+        tx: AsyncManagedTransaction, yelpId: str
+    ) -> SinglePlace:
+        result = await tx.run(
+            "MATCH (p:Place {yelpId: $yelpId}) RETURN p AS place",
+            yelpId=yelpId,
+        )
+
+        result = await result.single()
+        return result.get("place") if result else None
+
+    @staticmethod
+    async def get_place_by_name_and_position(
+        tx: AsyncManagedTransaction,
+        name: str,
+        latitude: float,
+        longitude: float,
+        max_distance_meters: int,
+    ) -> SinglePlaceRecommended:
+        result = await tx.run(
+            """
+        WITH point({latitude: $latitude, longitude: $longitude}) AS pointRef
+        MATCH (candidate:Place)
+        WHERE 
+            point.distance(candidate.coordinates, pointRef) < $max_distance_meters AND
+            apoc.text.sorensenDiceSimilarity(candidate.name, $name) > 0.5
+        WITH 
+            candidate,
+            point.distance(candidate.coordinates, pointRef) < $max_distance_meters AS distance ,
+            apoc.text.sorensenDiceSimilarity(candidate.name, $name) AS score
+        ORDER BY distance ASC, score DESC
+        LIMIT 1
+        RETURN candidate { .*, distance: distance, score: score } AS place
+        """,
+            name=name,
+            latitude=latitude,
+            longitude=longitude,
+            max_distance_meters=max_distance_meters,
+        )
+
+        result = await result.single()
+        return result.get("place") if result else None
+
+    @staticmethod
     async def get_place_extended(
         tx: AsyncManagedTransaction, placeId: str
     ) -> SinglePlaceExtended:
         result = await tx.run(
             """
             MATCH (p:Place {placeId: $placeId})
-            OPTIONAL MATCH (p)-[:HAS_FEATURE]->(f:Feature)
-            OPTIONAL MATCH (p)-[:IN_CATEGORY]->(c:Category)
+            OPTIONAL MATCH (p)-->(f:Feature)
+            OPTIONAL MATCH (p)-->(c:Category)
             WITH p, collect(c) AS Cats, collect(f) AS Feats
             RETURN p { .*, features: Feats, categories: Cats } AS place
         """,
@@ -202,7 +246,7 @@ class PlaceDAO(object):
             """
         WITH point({latitude: $latitude, longitude: $longitude}) AS pointRef
 
-        MATCH (user:User {userId: $user_id})-[r:RATED]->(:Place)-[:IN_CATEGORY]->(ratedCategory:Category)
+        MATCH (user:User {userId: $user_id})-[r:RATED]->(:Place)-->(ratedCategory:Category)
         WITH 
           pointRef, 
           ratedCategory,
@@ -216,9 +260,9 @@ class PlaceDAO(object):
         MATCH (candidate:Place)
         WHERE 
           point.distance(candidate.coordinates, pointRef) < $max_distance_meters
-          AND EXISTS { (candidate)-[:IN_CATEGORY]->(:Category {name: $base_category}) }
+          AND EXISTS { (candidate)-->(:Category {name: $base_category}) }
 
-        MATCH (candidate)-[:IN_CATEGORY]->(cat:Category)
+        MATCH (candidate)-->(cat:Category)
         WHERE cat IN likedCategories 
 
         WITH 

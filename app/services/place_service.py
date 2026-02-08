@@ -3,7 +3,7 @@ from neo4j import AsyncDriver
 
 from app.config.settings import settings
 from app.dao.place_dao import PlaceDAO
-from app.dto.place import SinglePlace, SinglePlaceExtended
+from app.dto.place import SinglePlace, SinglePlaceExtended, SinglePlaceRecommended
 from app.config.exceptions import NotFound, AlreadyExists
 from app.services.category_service import CategoryService
 from app.services.feature_service import FeatureService
@@ -38,6 +38,34 @@ class PlaceService:
                 return SinglePlaceExtended(**item)
             else:
                 raise NotFound(f"Place with id {placeId} was not found.")
+
+    async def get_place_by_yelp_id(self, yelpId: str) -> SinglePlace | None:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            item = await session.execute_read(
+                PlaceDAO.get_place_by_yelp_id, yelpId=yelpId
+            )
+            if item:
+                return SinglePlace(**item)
+            return None
+
+    async def get_place_by_name_and_position(
+        self,
+        name: str,
+        latitude: float,
+        longitude: float,
+        max_distance_meters: int = 200,
+    ) -> SinglePlaceRecommended | None:
+        async with self.driver.session(database=settings.NEO4J_DATABASE) as session:
+            item = await session.execute_read(
+                PlaceDAO.get_place_by_name_and_position,
+                name=name,
+                latitude=latitude,
+                longitude=longitude,
+                max_distance_meters=max_distance_meters,
+            )
+            if item:
+                return SinglePlaceRecommended(**item)
+            return None
 
     async def create_place(self, placeId: str, data: dict[str, Any]) -> SinglePlace:
         async with self.driver.session(database=settings.NEO4J_DATABASE) as session:

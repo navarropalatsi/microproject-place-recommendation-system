@@ -7,8 +7,8 @@ from app.dto.feature import SingleFeature
 
 class SingleUser(BaseModel):
     userId: str
-    born: str | None
-    gender: Literal["m", "f"] | None
+    born: str | None = None
+    gender: Literal["m", "f"] | None = None
 
     @field_validator("born", mode="before")
     @classmethod

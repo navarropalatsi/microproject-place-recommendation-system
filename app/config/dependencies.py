@@ -1,4 +1,5 @@
 from fastapi import Request, Depends
+from neo4j import AsyncDriver
 
 from app.services.category_service import CategoryService
 from app.services.feature_service import FeatureService
@@ -11,16 +12,16 @@ def get_driver(request: Request):
     return request.app.state.driver
 
 
-async def get_feature_service(driver=Depends(get_driver)):
+async def get_feature_service(driver: AsyncDriver = Depends(get_driver)):
     return FeatureService(driver)
 
 
-async def get_category_service(driver=Depends(get_driver)):
+async def get_category_service(driver: AsyncDriver = Depends(get_driver)):
     return CategoryService(driver)
 
 
 async def get_place_service(
-    driver=Depends(get_driver),
+    driver: AsyncDriver = Depends(get_driver),
     category_service: CategoryService = Depends(get_category_service),
     feature_service: FeatureService = Depends(get_feature_service),
 ):
@@ -32,7 +33,7 @@ async def get_place_service(
 
 
 async def get_user_service(
-    driver=Depends(get_driver),
+    driver: AsyncDriver = Depends(get_driver),
     feature_service: FeatureService = Depends(get_feature_service),
     place_service: PlaceService = Depends(get_place_service),
 ):
@@ -44,7 +45,7 @@ async def get_user_service(
 
 
 async def get_recommendation_service(
-    driver=Depends(get_driver),
+    driver: AsyncDriver = Depends(get_driver),
     category_service: CategoryService = Depends(get_category_service),
     user_service: UserService = Depends(get_user_service),
 ):

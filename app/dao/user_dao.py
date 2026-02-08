@@ -29,7 +29,7 @@ class UserDAO(object):
             LiteralString,
             f"""
             MATCH (u:User {{userId: $user_id}})
-            OPTIONAL MATCH (u)-[:{UserDAO.NEEDS_FEATURE}]->(f:Feature)
+            OPTIONAL MATCH (u)-->(f:Feature)
             WITH u, collect(f) AS Feats
             RETURN u {{ .*, features: Feats }} AS user """,
         )

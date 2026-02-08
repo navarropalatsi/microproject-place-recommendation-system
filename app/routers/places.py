@@ -22,6 +22,22 @@ async def find_place_by_place_id(
     return await service.get_place(placeId=placeId)
 
 
+@router.get(
+    "/find/{name}/near/{latitude}/{longitude}",
+    description="Find place by name and position similarity",
+    response_model=SinglePlaceRecommended,
+)
+async def find_place_by_name_and_position(
+    name: str,
+    latitude: float,
+    longitude: float,
+    service: PlaceService = Depends(get_place_service),
+) -> SinglePlaceRecommended | None:
+    return await service.get_place_by_name_and_position(
+        name=name, latitude=latitude, longitude=longitude
+    )
+
+
 @router.post(
     "", description="Create a new place", response_model=SinglePlace, status_code=201
 )

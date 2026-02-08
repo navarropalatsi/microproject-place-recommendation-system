@@ -8,6 +8,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from app.config.settings import settings
 from app.config.neo4j import setup_db
 from app.dto.category import SingleCategory
 from app.dto.place import SinglePlace
@@ -24,10 +25,8 @@ FOREACH (cat IN row[1] |
 """
 
 
-async def import_data():
+async def import_data(file_path: str) -> None:
     driver = await setup_db()
-    file_path = "neo4j_setup/importers/spain_portugal.geojson"
-
     i = 0
     limit = 10000
     buffer = list()
@@ -95,4 +94,4 @@ async def import_data():
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(import_data())
+    asyncio.run(import_data(sys.argv[1]))

@@ -9,7 +9,7 @@ services:
       - "7474:7474"
       - "7687:7687"
     volumes:
-      - database-data:/data
+      - ${NEO4J_DATA_PATH:-./data}:/data
     healthcheck:
       test: [
         "CMD-SHELL",
@@ -30,5 +30,3 @@ services:
     depends_on:
       database:
         condition: service_healthy
-volumes:
-  database-data:
