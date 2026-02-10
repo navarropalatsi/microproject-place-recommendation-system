@@ -15,17 +15,32 @@ from app.config.neo4j import setup_db
 BULK_IMPORT_QUERY = """
 UNWIND $batch AS row
 CALL (row) {
-    WITH row, point({latitude: row.latitude, longitude: row.longitude}) AS refPoint
+    WITH 
+    row, 
+    point({latitude: row.latitude, longitude: row.longitude}) AS refPoint, 
+    400 AS radio
+    
     MATCH (p:Place) 
-    WHERE point.distance(refPoint, p.coordinates) < 10000
-    WITH row, p, apoc.text.sorensenDiceSimilarity(toUpper(p.name), toUpper(row.name)) AS score
-    ORDER BY score DESC
+    WHERE point.distance(refPoint, p.coordinates) < radio 
+    AND apoc.text.sorensenDiceSimilarity(p.name, row.name) >= 0.5
+    
+    WITH
+    p, 
+    radio,
+    apoc.text.sorensenDiceSimilarity(p.name, row.name) AS score, 
+    point.distance(refPoint, p.coordinates) AS distance
+    
+    WITH p, score, (1 - (distance/radio)) AS finalDistance
+    WITH p, (score * 0.5 + finalDistance * 0.5 ) AS finalScore
+
+    ORDER BY finalScore DESC
     RETURN p
     LIMIT 1
 }
 MATCH (u:User {userId: row.userId})
 MERGE (u)-[r:RATED]->(p)
 SET r.rating = row.rating
+SET r.ratedAt = datetime(row.ratedAt)
 RETURN p AS place
 """
 
@@ -67,12 +82,11 @@ async def import_data(file_path: str) -> None:
             "name": str(item["properties"]["location"]["name"]).replace("/", ""),
             "country": get_country(item["properties"]["location"]),
             "rating": item["properties"]["five_star_rating_published"],
+            "ratedAt": item["properties"]["date"],
             "latitude": float(item["geometry"]["coordinates"][1]),
             "longitude": float(item["geometry"]["coordinates"][0]),
         }
 
-        print("")
-        print(review)
         buffer.append(review)
 
         i = i + 1
@@ -84,9 +98,9 @@ async def import_data(file_path: str) -> None:
                 result = await session.run(
                     cast(LiteralString, BULK_IMPORT_QUERY), batch=buffer
                 )
-                result = await result.single()
-                if result and result.get("place"):
-                    created = created + 1
+
+                items = [item.get("place") async for item in result]
+                created = created + len(items)
 
                 buffer = list()
                 diff = datetime.datetime.now() - now
@@ -98,9 +112,9 @@ async def import_data(file_path: str) -> None:
             result = await session.run(
                 cast(LiteralString, BULK_IMPORT_QUERY), batch=buffer
             )
-            result = await result.single()
-            if result and result.get("place"):
-                created = created + 1
+
+            items = [item.get("place") async for item in result]
+            created = created + len(items)
 
     print(f"Reviews seen: {i}. {created} reviews created")
 

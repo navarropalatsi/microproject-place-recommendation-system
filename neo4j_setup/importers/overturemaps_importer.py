@@ -34,24 +34,36 @@ async def import_data(file_path: str) -> None:
     for item in ijson.items(open(file_path, "r"), "features.item"):
         place = SinglePlace(
             placeId=item["properties"]["id"],
-            name=str(item["properties"]["names"]["primary"])
-            if item["properties"]["names"]["primary"]
-            else None,
-            freeform=str(item["properties"]["addresses"][0]["freeform"])
-            if item["properties"]["addresses"][0]["freeform"]
-            else None,
-            locality=str(item["properties"]["addresses"][0]["locality"]).upper()
-            if item["properties"]["addresses"][0]["locality"]
-            else None,
-            country=str(item["properties"]["addresses"][0]["country"]).upper()
-            if item["properties"]["addresses"][0]["country"]
-            else None,
-            postcode=str(item["properties"]["addresses"][0]["postcode"])
-            if item["properties"]["addresses"][0]["postcode"]
-            else None,
-            region=str(item["properties"]["addresses"][0]["region"]).upper()
-            if item["properties"]["addresses"][0]["region"]
-            else None,
+            name=(
+                str(item["properties"]["names"]["primary"])
+                if item["properties"]["names"]["primary"]
+                else None
+            ),
+            freeform=(
+                str(item["properties"]["addresses"][0]["freeform"])
+                if item["properties"]["addresses"][0]["freeform"]
+                else None
+            ),
+            locality=(
+                str(item["properties"]["addresses"][0]["locality"]).upper()
+                if item["properties"]["addresses"][0]["locality"]
+                else None
+            ),
+            country=(
+                str(item["properties"]["addresses"][0]["country"]).upper()
+                if item["properties"]["addresses"][0]["country"]
+                else None
+            ),
+            postcode=(
+                str(item["properties"]["addresses"][0]["postcode"])
+                if item["properties"]["addresses"][0]["postcode"]
+                else None
+            ),
+            region=(
+                str(item["properties"]["addresses"][0]["region"]).upper()
+                if item["properties"]["addresses"][0]["region"]
+                else None
+            ),
             confidence=float(round(item["properties"]["confidence"], 4)),
             latitude=item["geometry"]["coordinates"][1],
             longitude=item["geometry"]["coordinates"][0],
